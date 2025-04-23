@@ -6,8 +6,17 @@ export const addSchool = async (req, res, next) => {
   try {
     const { name, address, latitude, longitude } = req.body;
 
-    if (!name || !address || !latitude || !longitude) {
-      throw new ApiError(400, "All fields are required");
+    const missingFields = []
+    if (!name)      missingFields.push('name')
+    if (!address)   missingFields.push('address')
+    if (latitude === undefined || latitude === null)  missingFields.push('latitude')
+    if (longitude === undefined || longitude === null) missingFields.push('longitude')
+
+    if (missingFields.length) {
+      throw new ApiError(
+        400,
+        `Missing required field${missingFields.length > 1 ? 's' : ''}: ${missingFields.join(', ')}`
+      )
     }
 
     const existingSchool = await School.findOne({
@@ -31,9 +40,29 @@ export const listSchools = async (req, res, next) => {
   try {
     const { latitude, longitude } = req.query;
 
-    if (!latitude || !longitude) {
-      throw new ApiError(400, "Latitude and longitude are required");
+    const missing = [];
+    if (latitude == null)  missing.push('latitude');
+    if (longitude == null) missing.push('longitude');
+    if (missing.length) {
+      throw new ApiError(
+        400,
+        `Missing query parameter: ${missing.join(', ')}`
+      );
     }
+
+    // 2) Validate numeric values
+    const latNum = parseFloat(latitude);
+    const lonNum = parseFloat(longitude);
+    const invalid = [];
+    if (isNaN(latNum)) invalid.push('latitude');
+    if (isNaN(lonNum)) invalid.push('longitude');
+    if (invalid.length) {
+      throw new ApiError(
+        400,
+        `Invalid query parameter: ${invalid.join(', ')}`
+      );
+    }
+    
 
     const schools = await School.findAll();
     const sortedSchools = schools.map((school) => {
